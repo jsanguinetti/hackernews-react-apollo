@@ -4,6 +4,7 @@ import './styles/index.css';
 import App from './components/App';
 import registerServiceWorker from './registerServiceWorker';
 import { ApolloProvider, createNetworkInterface, ApolloClient } from 'react-apollo'
+import { BrowserRouter } from 'react-router-dom'
 
 const networkInterface = createNetworkInterface({
     uri: process.env.REACT_APP_API_ENDPOINT
@@ -11,12 +12,10 @@ const networkInterface = createNetworkInterface({
 
 networkInterface.use([{
     applyMiddleware(req, next) {
-        if (!req.options.headers) {
-            req.options.headers = {};  // Create the header object if needed.
-        }
+        req.options.headers = req.options.headers || {}
         // get the authentication token from local storage if it exists
         const token = process.env.REACT_APP_JWT_ACCESS_TOKEN;
-        req.options.headers.authorization = token ? `JWT ${token}` : null;
+        req.options.headers.Authorization = token ? `JWT ${token}` : null;
         next();
     }
 }])
@@ -26,9 +25,11 @@ const client = new ApolloClient({
 })
 
 ReactDOM.render(
-    <ApolloProvider client={client}>
-        <App />
-    </ApolloProvider>, 
+    <BrowserRouter>
+        <ApolloProvider client={client}>
+            <App />
+        </ApolloProvider>
+    </BrowserRouter>,
     document.getElementById('root')
 )
 registerServiceWorker();
