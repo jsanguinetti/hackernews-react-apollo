@@ -4,6 +4,7 @@ import './styles/index.css';
 import App from './components/App';
 import registerServiceWorker from './registerServiceWorker';
 import { ApolloProvider, createNetworkInterface, ApolloClient } from 'react-apollo'
+import { SubscriptionClient, addGraphQLSubscriptions } from 'subscriptions-transport-ws'
 import { AUTH_TOKEN } from './constants'
 import { BrowserRouter } from 'react-router-dom'
 
@@ -23,8 +24,20 @@ networkInterface.use([{
     }
 }])
 
+const wsClient = new SubscriptionClient(process.env.REACT_APP_SUBSCRIPTION_API_ENDPOINT, {
+    reconnect: true,
+    connectionParams: {
+        uthToken: localStorage.getItem(AUTH_TOKEN),
+    }
+})
+
+const networkInterfaceWithSubscriptions = addGraphQLSubscriptions(
+    networkInterface,
+    wsClient
+)
+
 const client = new ApolloClient({
-    networkInterface
+    networkInterface: networkInterfaceWithSubscriptions
 })
 
 ReactDOM.render(

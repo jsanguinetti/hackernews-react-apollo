@@ -4,27 +4,31 @@ import { graphql, gql } from 'react-apollo'
 
 class LinkList extends Component {
 
-  render() {
-    if (this.props.allLinksQuery && this.props.allLinksQuery.loading) {
-        return <div>Loading</div>
+    render() {
+        if (this.props.allLinksQuery && this.props.allLinksQuery.loading) {
+            return <div>Loading</div>
+        }
+
+        if (this.props.allLinksQuery && this.props.allLinksQuery.error) {
+            return <div>Error</div>
+        }
+        
+        const linksToRender = this.props.allLinksQuery.allLinks
+
+        return (
+            <div>
+                {
+                    linksToRender.map((link, index) => (
+                        <Link key={link.id} updateStoreAfterVote={this._updateCacheAfterVote} index={index} link={link}/>
+                    ))
+                }
+            </div>
+        )
     }
 
-    if (this.props.allLinksQuery && this.props.allLinksQuery.error) {
-        return <div>Error</div>
+    componentDidMount() {
+        this._subscribeToNewLinks()
     }
-    
-    const linksToRender = this.props.allLinksQuery.allLinks
-
-    return (
-        <div>
-            {
-                linksToRender.map((link, index) => (
-                    <Link key={link.id} updateStoreAfterVote={this._updateCacheAfterVote} index={index} link={link}/>
-                ))
-            }
-        </div>
-    )
-  }
 
     _updateCacheAfterVote = (store, createVote, linkId) => {
         // 1
@@ -36,6 +40,35 @@ class LinkList extends Component {
 
         // 3
         store.writeQuery({ query: ALL_LINKS_QUERY, data })
+    }
+
+    _subscribeToNewLinks = () => {
+        this.props.allLinksQuery.subscribeToMore({
+          document: gql`
+            subscription {
+              Link(filter: {
+                mutation_in: [CREATED]
+              }) {
+                node {
+                  id
+                  url
+                  description
+                }
+              }
+            }
+          `,
+          updateQuery: (previous, { subscriptionData }) => {
+            const newAllLinks = [
+              subscriptionData.data.Link.node,
+              ...previous.allLinks
+            ]
+            const result = {
+              ...previous,
+              allLinks: newAllLinks
+            }
+            return result
+          }
+        })
     }
 
 }
